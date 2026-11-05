@@ -14,7 +14,7 @@ use std::ffi::{c_char, c_void, CStr, CString};
 use std::fmt::Display;
 use std::ptr;
 
-pub const ABI_VERSION: u32 = 7;
+pub const ABI_VERSION: u32 = 8;
 
 pub struct M2vDevice {
     device: Device,
@@ -630,6 +630,25 @@ pub unsafe extern "C" fn m2v_compute_encoder_dispatch_threadgroups(
 ) -> bool {
     let encoder = encoder!(encoder, error);
     check!(encoder.dispatch_threadgroups(groups.into(), per_group.into()), error, false);
+    true
+}
+
+/// dispatchThreadgroupsWithIndirectBuffer:indirectBufferOffset:threadsPerThreadgroup:
+#[no_mangle]
+pub unsafe extern "C" fn m2v_compute_encoder_dispatch_threadgroups_indirect(
+    encoder: *mut M2vComputeEncoder,
+    indirect_buffer: *const M2vBuffer,
+    indirect_buffer_offset: u64,
+    per_group: M2vSize,
+    error: *mut *mut c_char,
+) -> bool {
+    let encoder = encoder!(encoder, error);
+    let indirect = handle!(indirect_buffer, error, false);
+    check!(
+        encoder.dispatch_threadgroups_indirect(&indirect.0, indirect_buffer_offset, per_group.into()),
+        error,
+        false
+    );
     true
 }
 
