@@ -1,0 +1,23 @@
+[package]
+name = "metal2vulkan-capi"
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.98"
+license = "GPL-2.0-or-later OR LGPL-3.0-or-later"
+description = "A C ABI over metal2vulkan-runtime, for programs that are not written in Rust"
+publish = false
+
+# Its own workspace, so the repository's workspace manifest (which the translator's source
+# fingerprint hashes) stays as it is.
+[workspace]
+
+[lib]
+name = "metal2vulkan_capi"
+crate-type = ["cdylib"]
+
+[dependencies]
+metal2vulkan = { path = "../crates/metal2vulkan" }
+metal2vulkan-runtime = { path = "../crates/metal2vulkan-runtime" }
+
+[profile.release]
+debug = "line-tables-only"
