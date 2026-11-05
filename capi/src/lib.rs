@@ -14,7 +14,7 @@ use std::ffi::{c_char, c_void, CStr, CString};
 use std::fmt::Display;
 use std::ptr;
 
-pub const ABI_VERSION: u32 = 1;
+pub const ABI_VERSION: u32 = 7;
 
 pub struct M2vDevice {
     device: Device,
@@ -29,7 +29,7 @@ pub struct M2vFunction {
     name: CString,
 }
 
-pub struct M2vComputePipeline(ComputePipelineState);
+pub struct M2vComputePipeline(pub(crate) ComputePipelineState);
 pub struct M2vCommandQueue(CommandQueue);
 pub struct M2vCommandBuffer(CommandBuffer);
 pub struct M2vComputeEncoder(Option<ComputeCommandEncoder>);
@@ -646,3 +646,6 @@ pub unsafe extern "C" fn m2v_compute_encoder_end(
     check!(encoder.end_encoding(), error, false);
     true
 }
+
+mod reflection;
+mod render;
