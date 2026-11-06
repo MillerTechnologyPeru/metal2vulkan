@@ -10,11 +10,13 @@ use metal2vulkan_runtime::{
     ComputePipelineState, Device, DeviceKind, Function, Library, PipelineOptions, ResourceOptions,
     Size,
 };
+use metal2vulkan::library::{FunctionConstantValue, FunctionConstantValues};
+use metal2vulkan::metal::DataType;
 use std::ffi::{c_char, c_void, CStr, CString};
 use std::fmt::Display;
 use std::ptr;
 
-pub const ABI_VERSION: u32 = 8;
+pub const ABI_VERSION: u32 = 9;
 
 pub struct M2vDevice {
     device: Device,
@@ -331,6 +333,60 @@ pub unsafe extern "C" fn m2v_library_new_function_with_name(
     let name = CStr::from_ptr(name);
     let text = check!(name.to_str(), error, ptr::null_mut());
     let function = check!(library.0.new_function_with_name(text), error, ptr::null_mut());
+    boxed(M2vFunction { function, name: name.to_owned() })
+}
+
+/// One `MTLFunctionConstantValues` entry: a value by `[[function_constant(index)]]` index, or by
+/// name where `name` is not NULL, with its `MTLDataType` and its packed bytes.
+#[repr(C)]
+pub struct M2vFunctionConstantValue {
+    pub name: *const c_char,
+    pub index: u32,
+    pub data_type: u32,
+    pub bytes: *const u8,
+    pub length: usize,
+}
+
+/// `newFunctionWithName:constantValues:error:`: the function specialized with `count` values.
+#[no_mangle]
+pub unsafe extern "C" fn m2v_library_new_function_with_constant_values(
+    library: *const M2vLibrary,
+    name: *const c_char,
+    values: *const M2vFunctionConstantValue,
+    count: usize,
+    error: *mut *mut c_char,
+) -> *mut M2vFunction {
+    let library = handle!(library, error, ptr::null_mut());
+    if name.is_null() {
+        return fail(error, "name is NULL", ptr::null_mut());
+    }
+    if values.is_null() && count > 0 {
+        return fail(error, "values is NULL", ptr::null_mut());
+    }
+    let name = CStr::from_ptr(name);
+    let text = check!(name.to_str(), error, ptr::null_mut());
+    let mut constants = FunctionConstantValues::defaults();
+    let entries = if count == 0 { &[][..] } else { std::slice::from_raw_parts(values, count) };
+    for entry in entries {
+        let ty = check!(DataType::try_from(entry.data_type), error, ptr::null_mut());
+        let bytes: Box<[u8]> = if entry.length == 0 || entry.bytes.is_null() {
+            Box::new([])
+        } else {
+            std::slice::from_raw_parts(entry.bytes, entry.length).into()
+        };
+        let value = FunctionConstantValue::new(ty, bytes);
+        constants = if entry.name.is_null() {
+            constants.with_index(entry.index, value)
+        } else {
+            let constant = check!(CStr::from_ptr(entry.name).to_str(), error, ptr::null_mut());
+            constants.with_name(constant, value)
+        };
+    }
+    let function = check!(
+        library.0.new_function_with_name_constant_values(text, &constants),
+        error,
+        ptr::null_mut()
+    );
     boxed(M2vFunction { function, name: name.to_owned() })
 }
 
