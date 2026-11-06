@@ -96,6 +96,17 @@ void m2v_library_release(m2v_library *library);
 size_t m2v_library_function_names(const m2v_library *library, char ***names);
 void m2v_strings_free(char **strings, size_t count);
 m2v_function *m2v_library_new_function_with_name(const m2v_library *library, const char *name, char **error);
+/* One MTLFunctionConstantValues entry: by index, or by name where name is not NULL. ABI 9. */
+typedef struct m2v_function_constant_value {
+    const char *name;
+    uint32_t index;
+    uint32_t data_type;
+    const uint8_t *bytes;
+    size_t length;
+} m2v_function_constant_value;
+m2v_function *m2v_library_new_function_with_constant_values(const m2v_library *library, const char *name,
+                                                            const m2v_function_constant_value *values, size_t count,
+                                                            char **error);
 void m2v_function_release(m2v_function *function);
 /// The name, valid while the function is.
 const char *m2v_function_name(const m2v_function *function);
