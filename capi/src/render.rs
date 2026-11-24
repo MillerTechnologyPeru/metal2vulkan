@@ -23,7 +23,13 @@ use metal2vulkan_runtime::{
     ScissorRect, StoreAction, Texture, TextureDescriptor, Viewport, VisibilityResultMode,
 };
 
-pub struct M2vTexture(pub(crate) Texture);
+/// A texture, and the dma-buf image under it where the shim made one (`dma_buf.rs`), freed
+/// after the texture.
+pub struct M2vTexture(
+    pub(crate) Texture,
+    // Held only to be dropped after the texture.
+    #[allow(dead_code)] pub(crate) Option<Box<super::dma_buf::DmaBufImage>>,
+);
 pub struct M2vSamplerState(pub(crate) SamplerState);
 pub struct M2vDepthStencilState(DepthStencilState);
 pub struct M2vRenderPipeline(pub(crate) RenderPipelineState);
@@ -66,19 +72,19 @@ impl From<M2vRegion> for Region {
 
 #[repr(C)]
 pub struct M2vTextureDescriptor {
-    texture_type: u32,
-    pixel_format: u32,
-    width: u64,
-    height: u64,
-    depth: u64,
-    mipmap_level_count: u64,
-    sample_count: u64,
-    array_length: u64,
-    usage: u64,
-    resource_options: u64,
+    pub(crate) texture_type: u32,
+    pub(crate) pixel_format: u32,
+    pub(crate) width: u64,
+    pub(crate) height: u64,
+    pub(crate) depth: u64,
+    pub(crate) mipmap_level_count: u64,
+    pub(crate) sample_count: u64,
+    pub(crate) array_length: u64,
+    pub(crate) usage: u64,
+    pub(crate) resource_options: u64,
 }
 
-unsafe fn texture_descriptor(d: &M2vTextureDescriptor) -> Result<TextureDescriptor, String> {
+pub(crate) unsafe fn texture_descriptor(d: &M2vTextureDescriptor) -> Result<TextureDescriptor, String> {
     let mut descriptor = TextureDescriptor::default();
     descriptor.texture_type = raw::<TextureType>(d.texture_type, "MTLTextureType")?;
     descriptor.pixel_format = format(d.pixel_format)?.ok_or("MTLPixelFormatInvalid")?;
@@ -102,7 +108,7 @@ pub unsafe extern "C" fn m2v_device_new_texture(
     let device = handle!(device, error, ptr::null_mut());
     let descriptor = handle!(descriptor, error, ptr::null_mut());
     let descriptor = check!(texture_descriptor(descriptor), error, ptr::null_mut());
-    boxed(M2vTexture(check!(device.device.new_texture(&descriptor), error, ptr::null_mut())))
+    boxed(M2vTexture(check!(device.device.new_texture(&descriptor), error, ptr::null_mut()), None))
 }
 
 #[no_mangle]
@@ -202,7 +208,7 @@ pub unsafe extern "C" fn m2v_texture_new_view(
         first_level..first_level + level_count,
         first_slice..first_slice + slice_count,
     );
-    boxed(M2vTexture(check!(view, error, ptr::null_mut())))
+    boxed(M2vTexture(check!(view, error, ptr::null_mut()), None))
 }
 
 // MARK: Samplers
