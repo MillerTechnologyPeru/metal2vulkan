@@ -18,6 +18,8 @@ crate-type = ["cdylib"]
 [dependencies]
 metal2vulkan = { path = "../crates/metal2vulkan" }
 metal2vulkan-runtime = { path = "../crates/metal2vulkan-runtime" }
+# The runtime's own Vulkan bindings, for the images `dma_buf.rs` makes.
+ash = { version = "0.38", default-features = false, features = ["std"] }
 
 [profile.release]
 debug = "line-tables-only"
