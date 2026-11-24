@@ -282,6 +282,18 @@ fn each_contradiction_is_refused_by_name() {
 /// fetch reads input attachments (lavapipe), is the only usage an image may lack: the texture is
 /// wrapped without it, and a pass that fetches it renders into a stand-in.
 #[test]
+fn an_image_tiled_by_a_drm_format_modifier_wraps_as_an_optimal_one() {
+    // A dma-buf's image, which another API imports: its tiling is the modifier's.
+    let plan = lavapipe(
+        TextureType::Type2D,
+        PixelFormat::BGRA8Unorm,
+        TextureUsage::RENDER_TARGET | TextureUsage::SHADER_READ,
+    );
+    let got = wrap_changed(&plan, |i| i.tiling(vk::ImageTiling::DRM_FORMAT_MODIFIER_EXT)).expect("wrapped");
+    assert_eq!(got, plan);
+}
+
+#[test]
 fn a_render_target_wraps_without_input_attachment_usage() {
     let mut planned = 0;
     for (name, desc, device) in committed() {
