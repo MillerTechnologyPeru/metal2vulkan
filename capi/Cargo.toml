@@ -21,3 +21,7 @@ metal2vulkan-runtime = { path = "../crates/metal2vulkan-runtime" }
 
 [profile.release]
 debug = "line-tables-only"
+# One unit, optimized across the runtime's crates: Perry's encoder calls run
+# through many small functions of all three.
+lto = "fat"
+codegen-units = 1
