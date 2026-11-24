@@ -23,11 +23,11 @@ use metal2vulkan_runtime::{
     ScissorRect, StoreAction, Texture, TextureDescriptor, Viewport, VisibilityResultMode,
 };
 
-pub struct M2vTexture(Texture);
-pub struct M2vSamplerState(SamplerState);
+pub struct M2vTexture(pub(crate) Texture);
+pub struct M2vSamplerState(pub(crate) SamplerState);
 pub struct M2vDepthStencilState(DepthStencilState);
 pub struct M2vRenderPipeline(pub(crate) RenderPipelineState);
-pub struct M2vRenderEncoder(Option<RenderCommandEncoder>);
+pub struct M2vRenderEncoder(pub(crate) Option<RenderCommandEncoder>);
 pub struct M2vBlitEncoder(Option<BlitCommandEncoder>);
 
 /// A Metal enum from its raw value, or why not.
