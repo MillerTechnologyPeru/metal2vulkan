@@ -16,7 +16,7 @@ use std::ffi::{c_char, c_void, CStr, CString};
 use std::fmt::Display;
 use std::ptr;
 
-pub const ABI_VERSION: u32 = 9;
+pub const ABI_VERSION: u32 = 10;
 
 pub struct M2vDevice {
     device: Device,
@@ -722,5 +722,6 @@ pub unsafe extern "C" fn m2v_compute_encoder_end(
     true
 }
 
+mod arguments;
 mod reflection;
 mod render;
