@@ -7,7 +7,8 @@
 //! - **What the image is.** Vulkan has no query for an image's creation, so the caller states it:
 //!   the `VkImageCreateInfo` it made the image with. The image must be what the runtime would make
 //!   for the descriptor on this device ([`wrap_plan`]): the same type, format, extent, levels,
-//!   layers and samples, optimal tiling, every usage and the cube compatibility the runtime's own
+//!   layers and samples, optimal tiling (or a DRM format modifier's: see below), every usage and
+//!   the cube compatibility the runtime's own
 //!   texture of the descriptor would have (transfer usage among them where the format has it:
 //!   Metal copies every texture with blits). Two the runtime gives against uses no texture can
 //!   foresee may be missing, and a pass that needs one renders the texture through a stand-in
@@ -16,6 +17,12 @@
 //!   ([`WrappedImageProblem`]). An image that is not mutable-format is viewed in its own format
 //!   only: a view or binding in another one (the sRGB twin Metal views without
 //!   `PixelFormatView`) is refused when made.
+//! - **DRM format modifiers.** An image of `VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT`, such as
+//!   one the caller exports as a dma-buf for another API or process to import, is wrapped as an
+//!   optimal one: the runtime reads and writes it only through the device, as every image of its
+//!   own, and never by its rows. Vulkan has the image's modifier and its features, not its
+//!   creation info, so the caller states that the modifier's features
+//!   (`VkDrmFormatModifierProperties2EXT`) cover the usage the descriptor gives it.
 //! - **The layout contract** ([`VkImageLayouts`]). The image is the caller's between the
 //!   runtime's batches, in its `home` layout. Each batch of the runtime's submissions that uses
 //!   the image moves it to `GENERAL` at its start, where every image of the runtime rests, and
@@ -128,7 +135,7 @@ pub enum WrappedImageProblem {
         /// The descriptor's sample count.
         texture: SampleCountFlags,
     },
-    /// The image is not optimal-tiled.
+    /// The image is neither optimal-tiled nor tiled by a DRM format modifier.
     Tiling {
         /// The image's tiling.
         image: ImageTiling,
@@ -399,7 +406,7 @@ pub(crate) fn wrap_plan(
         });
     }
     let tiling = ImageTiling::from(info.tiling);
-    if tiling != ImageTiling::OPTIMAL {
+    if tiling != ImageTiling::OPTIMAL && tiling != ImageTiling::DRM_FORMAT_MODIFIER_EXT {
         return Err(P::Tiling { image: tiling });
     }
     let flags = ImageCreateFlags::from(info.flags);
