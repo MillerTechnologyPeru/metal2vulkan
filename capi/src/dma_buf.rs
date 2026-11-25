@@ -38,18 +38,23 @@ impl Drop for DmaBufImage {
 fn formats(pixel_format: u32) -> Option<(vk::Format, u32)> {
     const AB24: u32 = u32::from_le_bytes(*b"AB24"); // DRM_FORMAT_ABGR8888: R, G, B, A in memory
     const AR24: u32 = u32::from_le_bytes(*b"AR24"); // DRM_FORMAT_ARGB8888: B, G, R, A in memory
+    const AB30: u32 = u32::from_le_bytes(*b"AB30"); // DRM_FORMAT_ABGR2101010: R in the low 10 bits
+    const AR30: u32 = u32::from_le_bytes(*b"AR30"); // DRM_FORMAT_ARGB2101010: B in the low 10 bits
     match pixel_format {
         70 => Some((vk::Format::R8G8B8A8_UNORM, AB24)),
         71 => Some((vk::Format::R8G8B8A8_SRGB, AB24)),
         80 => Some((vk::Format::B8G8R8A8_UNORM, AR24)),
         81 => Some((vk::Format::B8G8R8A8_SRGB, AR24)),
+        90 => Some((vk::Format::A2B10G10R10_UNORM_PACK32, AB30)), // RGB10A2Unorm
+        94 => Some((vk::Format::A2R10G10B10_UNORM_PACK32, AR30)), // BGR10A2Unorm
         _ => None,
     }
 }
 
-/// A 2D texture of `descriptor` (BGRA8 or RGBA8, unorm or sRGB, one level and sample, private
-/// storage) over memory exported as a dma-buf, described in `dma_buf`: its fd, which the caller
-/// owns and closes, then width, height, row stride, offset, DRM fourcc and DRM format modifier.
+/// A 2D texture of `descriptor` (BGRA8 or RGBA8, unorm or sRGB, or RGB10A2 or BGR10A2 unorm; one
+/// level and sample, private storage) over memory exported as a dma-buf, described in `dma_buf`:
+/// its fd, which the caller owns and closes, then width, height, row stride, offset, DRM fourcc
+/// and DRM format modifier.
 /// NULL, with `error` set, where the device doesn't export dma-bufs as linear images.
 ///
 /// The caller releases the texture only once every command buffer that used it has completed.
